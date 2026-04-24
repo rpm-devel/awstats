@@ -1,12 +1,11 @@
 Name:       awstats
-Version:    7.7
+Version:    7.9
 Release:    1%{?dist}
-BuildArch:  x86_64
+BuildArch:  %{_arch}
 Summary:    Advanced Web Statistics
 License:    GPLv3+
-Group:      Applications/Internet
 URL:        http://awstats.sourceforge.net
-Source0:    http://downloads.sourceforge.net/project/awstats/AWStats/%{version}/awstats-%{version}.tar.gz
+Source0:    https://sourceforge.net/projects/awstats/files/AWStats/%{version}/awstats-%{version}.tar.gz
 Source1:    %{name}.cron
 Patch0:     awstats-awredir.pl-sanitize-parameters.patch
 
@@ -20,7 +19,6 @@ Patch2:     awstats-awstats_path.patch
 # distribution specific definitions
 %define use_systemd (0%{?fedora} || 0%{?rhel} >= 7)
 
-BuildRoot:  %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires:  coreutils
 BuildRequires:  findutils
 BuildRequires:  perl-interpreter
@@ -33,8 +31,12 @@ Requires(post): perl-interpreter
 
 %if %use_systemd
 # For systemd.macros
+%if 0%{?rhel} >= 8 || 0%{?fedora}
+BuildRequires:  systemd-rpm-macros
+%else
 BuildRequires:  systemd
-Requires(postun): systemd
+%endif
+%{?systemd_requires}
 %else
 Requires(postun): /sbin/service
 %endif
@@ -81,8 +83,6 @@ recode ISO-8859-1..UTF-8 docs/awstats_changelog.txt
 
 
 %install
-rm -rf $RPM_BUILD_ROOT
-
 ### Create folders
 mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/{httpd/conf.d,%{name},cron.hourly}
 mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/lib/%{name}
@@ -136,9 +136,6 @@ for i in browser/adobe.png browser/seamonkey.png os/win*.png os/macos*.png cpu/i
 done
 cd -
 
-%clean
-rm -rf $RPM_BUILD_ROOT
-
 
 %post
 if [ $1 -eq 1 ]; then
@@ -161,7 +158,6 @@ fi
 
 
 %files
-%defattr(-,root,root,755)
 # Apache configuration file
 %config(noreplace) %{_sysconfdir}/httpd/conf.d/%{name}.conf
 %config(noreplace) %attr(750,root,root) %{_sysconfdir}/cron.hourly/%{name}
@@ -171,8 +167,6 @@ fi
 %dir %{_datadir}/%{name}/wwwroot
 %{_datadir}/%{name}/tools
 %{_datadir}/%{name}/wwwroot/cgi-bin
-# Different defattr to fix lots of files which should not be +x.
-%defattr(644,root,root,755)
 %doc README.md docs/*
 %{_datadir}/%{name}/lang
 %{_datadir}/%{name}/lib
@@ -184,6 +178,10 @@ fi
 
 
 %changelog
+* Fri Apr 24 2026 CasjaysDev <rpm-devel@casjaysdev.pro> - 7.9-1
+- Update to 7.9 for AlmaLinux 10
+- Modernize spec: remove BuildRoot, %%clean, %%defattr, Group tag
+
 * Mon Jan 08 2018 Petr Lautrbach <plautrba@redhat.com> - 7.7-1
 - Version 7.7
 
