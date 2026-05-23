@@ -17,7 +17,7 @@ Patch1:     awstats-7.0-httpd-2.4.patch
 Patch2:     awstats-awstats_path.patch
 
 # distribution specific definitions
-%define use_systemd (0%{?fedora} || 0%{?rhel} >= 7)
+%global use_systemd (0%{?fedora} || 0%{?rhel} >= 7)
 
 BuildRequires:  coreutils
 BuildRequires:  findutils
@@ -84,26 +84,26 @@ recode ISO-8859-1..UTF-8 docs/awstats_changelog.txt
 
 %install
 ### Create folders
-mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/{httpd/conf.d,%{name},cron.hourly}
-mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/lib/%{name}
-mkdir -p $RPM_BUILD_ROOT%{_datadir}/%{name}
+mkdir -p %{buildroot}%{_sysconfdir}/{httpd/conf.d,%{name},cron.hourly}
+mkdir -p %{buildroot}%{_localstatedir}/lib/%{name}
+mkdir -p %{buildroot}%{_datadir}/%{name}
 
 ### Install files
-cp -pr tools $RPM_BUILD_ROOT%{_datadir}/%{name}
-chmod 755 $RPM_BUILD_ROOT%{_datadir}/%{name}/tools/*.pl
-chmod 644 $RPM_BUILD_ROOT%{_datadir}/%{name}/tools/httpd_conf
-cp -pr wwwroot $RPM_BUILD_ROOT%{_datadir}/%{name}
-chmod 755 $RPM_BUILD_ROOT%{_datadir}/%{name}/wwwroot/cgi-bin/*.pl
-rm -rf $RPM_BUILD_ROOT%{_datadir}/%{name}/wwwroot/classes/src
+cp -pr tools %{buildroot}%{_datadir}/%{name}
+chmod 755 %{buildroot}%{_datadir}/%{name}/tools/*.pl
+chmod 644 %{buildroot}%{_datadir}/%{name}/tools/httpd_conf
+cp -pr wwwroot %{buildroot}%{_datadir}/%{name}
+chmod 755 %{buildroot}%{_datadir}/%{name}/wwwroot/cgi-bin/*.pl
+rm -rf %{buildroot}%{_datadir}/%{name}/wwwroot/classes/src
 ### We want these outside CGI path.
-rm -rf $RPM_BUILD_ROOT%{_datadir}/%{name}/wwwroot/cgi-bin/{lang,lib,plugins}
-cp -pr wwwroot/cgi-bin/{lang,lib,plugins} $RPM_BUILD_ROOT%{_datadir}/%{name}
+rm -rf %{buildroot}%{_datadir}/%{name}/wwwroot/cgi-bin/{lang,lib,plugins}
+cp -pr wwwroot/cgi-bin/{lang,lib,plugins} %{buildroot}%{_datadir}/%{name}
 
-rm -f $RPM_BUILD_ROOT%{_datadir}/%{name}/wwwroot/cgi-bin/awstats.model.conf
+rm -f %{buildroot}%{_datadir}/%{name}/wwwroot/cgi-bin/awstats.model.conf
 
 ### Commit permanent changes to default configuration
 install -p -m 644 wwwroot/cgi-bin/awstats.model.conf \
-    $RPM_BUILD_ROOT/%{_sysconfdir}/%{name}/%{name}.model.conf
+    %{buildroot}/%{_sysconfdir}/%{name}/%{name}.model.conf
 perl -pi -e '
                 s|^LogFile=.*$|LogFile="%{_localstatedir}/log/httpd/access_log"|;
                 s|^DirData=.*$|DirData="%{_localstatedir}/lib/awstats"|;
@@ -115,22 +115,22 @@ perl -pi -e '
                 s|^SaveDatabaseFilesWithPermissionsForEveryone=.*$|SaveDatabaseFilesWithPermissionsForEveryone=0|;
                 s|^SkipHosts=.*$|SkipHosts="127.0.0.1"|;
                 s|^Expires=.*$|Expires=3600|;
-            ' $RPM_BUILD_ROOT/%{_sysconfdir}/%{name}/%{name}.model.conf
-install -p -m 644 $RPM_BUILD_ROOT/%{_sysconfdir}/%{name}/%{name}.{model,localhost.localdomain}.conf
+            ' %{buildroot}/%{_sysconfdir}/%{name}/%{name}.model.conf
+install -p -m 644 %{buildroot}/%{_sysconfdir}/%{name}/%{name}.{model,localhost.localdomain}.conf
 
 # Fix scripts
 perl -pi -e 's|/usr/local/awstats|%{_datadir}/awstats|g' \
-             $RPM_BUILD_ROOT%{_datadir}/%{name}/tools/{*.pl}
+             %{buildroot}%{_datadir}/%{name}/tools/{*.pl}
 
 # Apache configuration
-install -p -m 644 tools/httpd_conf $RPM_BUILD_ROOT/%{_sysconfdir}/httpd/conf.d/%{name}.conf
+install -p -m 644 tools/httpd_conf %{buildroot}/%{_sysconfdir}/httpd/conf.d/%{name}.conf
 
 # Cron job
-install -m 0750 -p %{SOURCE1} $RPM_BUILD_ROOT%{_sysconfdir}/cron.hourly/%{name}
+install -m 0750 -p %{SOURCE1} %{buildroot}%{_sysconfdir}/cron.hourly/%{name}
 
 # replace logos with Copyright and Trademark problem by unknown.png
 # https://bugzilla.redhat.com/show_bug.cgi?id=1196549
-cd $RPM_BUILD_ROOT%{_datadir}/%{name}/wwwroot/icon
+cd %{buildroot}%{_datadir}/%{name}/wwwroot/icon
 for i in browser/adobe.png browser/seamonkey.png os/win*.png os/macos*.png cpu/intel.png cpu/ibm.png; do
 	cp -v os/unknown.png $i
 done
@@ -178,6 +178,9 @@ fi
 
 
 %changelog
+* Fri May 22 2026 CasjaysDev <rpm-devel@casjaysdev.pro> - 7.9-1
+- Fix spec violations: use %{buildroot}, %global for constants
+
 * Fri Apr 24 2026 CasjaysDev <rpm-devel@casjaysdev.pro> - 7.9-1
 - Update to 7.9 for AlmaLinux 10
 - Modernize spec: remove BuildRoot, %%clean, %%defattr, Group tag
