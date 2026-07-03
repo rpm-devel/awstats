@@ -1,45 +1,24 @@
 Name:       awstats
-Version:    7.9
+Version:    8.0
 Release:    1%{?dist}
-BuildArch:  %{_arch}
+ExclusiveArch: x86_64 aarch64
 Summary:    Advanced Web Statistics
-License:    GPLv3+
-URL:        http://awstats.sourceforge.net
+License:    GPL-3.0-or-later
+URL:        https://github.com/eldy/AWStats
 Source0:    https://sourceforge.net/projects/awstats/files/AWStats/%{version}/awstats-%{version}.tar.gz
-Source1:    %{name}.cron
 Patch0:     awstats-awredir.pl-sanitize-parameters.patch
-
-%if 0%{?rhel} == 7 || 0%{?fedora}
-# fix configuration for httpd 2.4 (#871366)
-Patch1:     awstats-7.0-httpd-2.4.patch
-%endif
-
 Patch2:     awstats-awstats_path.patch
-
-# distribution specific definitions
-%global use_systemd (0%{?fedora} || 0%{?rhel} >= 7)
 
 BuildRequires:  coreutils
 BuildRequires:  findutils
 BuildRequires:  perl-interpreter
 BuildRequires:  perl-generators
 BuildRequires:  recode
+BuildRequires:  systemd-rpm-macros
 Requires:   perl(:MODULE_COMPAT_%(eval "`perl -V:version`"; echo $version))
 Requires:   perl-Net-IP, perl-Net-DNS, perl-Geo-IP
-Requires:   crontabs
 Requires(post): perl-interpreter
-
-%if %use_systemd
-# For systemd.macros
-%if 0%{?rhel} >= 8 || 0%{?fedora}
-BuildRequires:  systemd-rpm-macros
-%else
-BuildRequires:  systemd
-%endif
 %{?systemd_requires}
-%else
-Requires(postun): /sbin/service
-%endif
 
 ## SELinux policy is now included upstream
 Obsoletes:  awstats-selinux < 6.8-1
@@ -64,12 +43,7 @@ http://localhost/awstats/awstats.pl
 
 
 %prep
-%setup -q
-%patch0 -p 1
-%if 0%{?rhel} == 7 || 0%{?fedora}
-%patch1 -p 1
-%endif
-%patch2 -p 1
+%autosetup -p1
 
 # Fix style sheets.
 perl -pi -e 's,/icon,/awstatsicons,g' wwwroot/css/*
@@ -125,9 +99,6 @@ perl -pi -e 's|/usr/local/awstats|%{_datadir}/awstats|g' \
 # Apache configuration
 install -p -m 644 tools/httpd_conf %{buildroot}/%{_sysconfdir}/httpd/conf.d/%{name}.conf
 
-# Cron job
-install -m 0750 -p %{SOURCE1} %{buildroot}%{_sysconfdir}/cron.hourly/%{name}
-
 # replace logos with Copyright and Trademark problem by unknown.png
 # https://bugzilla.redhat.com/show_bug.cgi?id=1196549
 cd %{buildroot}%{_datadir}/%{name}/wwwroot/icon
@@ -148,25 +119,19 @@ if [ $1 -eq 1 ]; then
 fi
 
 %postun
-%if %use_systemd
 %systemd_postun_with_restart httpd.service
-%else
-if [ $1 -ne 0 ]; then
-  /sbin/service httpd condrestart >/dev/null 2>&1
-fi
-%endif
 
 
 %files
 # Apache configuration file
 %config(noreplace) %{_sysconfdir}/httpd/conf.d/%{name}.conf
-%config(noreplace) %attr(750,root,root) %{_sysconfdir}/cron.hourly/%{name}
 %config(noreplace) %{_sysconfdir}/%{name}/
 %{_localstatedir}/lib/%{name}
 %dir %{_datadir}/%{name}
 %dir %{_datadir}/%{name}/wwwroot
 %{_datadir}/%{name}/tools
 %{_datadir}/%{name}/wwwroot/cgi-bin
+%license docs/LICENSE.TXT
 %doc README.md docs/*
 %{_datadir}/%{name}/lang
 %{_datadir}/%{name}/lib
@@ -178,6 +143,14 @@ fi
 
 
 %changelog
+* Thu Jul 03 2026 CasjaysDev <rpm-devel@casjaysdev.pro> - 8.0-1
+- Update to 8.0
+- URL: https://github.com/eldy/AWStats
+- Source0: SourceForge URL (verified 200); remove missing Source1 (awstats.cron)
+- Remove Patch1 (rhel7/fedora only); unconditional systemd-rpm-macros for EL8+
+- %%autosetup -p1; simplify systemd conditional; remove cron install and %%files entry
+- GPL-3.0-or-later SPDX; ExclusiveArch: x86_64 aarch64; %%license
+
 * Fri May 22 2026 CasjaysDev <rpm-devel@casjaysdev.pro> - 7.9-1
 - Fix spec violations: use %{buildroot}, %global for constants
 
