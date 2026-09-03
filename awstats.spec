@@ -1,3 +1,13 @@
+%if 0%{?suse_version}
+%global httpd_confdir  %{_sysconfdir}/apache2/conf.d
+%global httpd_logdir   %{_localstatedir}/log/apache2
+%global httpd_service  apache2
+%else
+%global httpd_confdir  %{_sysconfdir}/httpd/conf.d
+%global httpd_logdir   %{_localstatedir}/log/httpd
+%global httpd_service  httpd
+%endif
+
 Name:       awstats
 Version:    8.0
 Release:    1%{?dist}
@@ -58,7 +68,8 @@ recode ISO-8859-1..UTF-8 docs/awstats_changelog.txt
 
 %install
 ### Create folders
-mkdir -p %{buildroot}%{_sysconfdir}/{httpd/conf.d,%{name},cron.hourly}
+mkdir -p %{buildroot}%{httpd_confdir}
+mkdir -p %{buildroot}%{_sysconfdir}/{%{name},cron.hourly}
 mkdir -p %{buildroot}%{_localstatedir}/lib/%{name}
 mkdir -p %{buildroot}%{_datadir}/%{name}
 
@@ -79,7 +90,7 @@ rm -f %{buildroot}%{_datadir}/%{name}/wwwroot/cgi-bin/awstats.model.conf
 install -p -m 644 wwwroot/cgi-bin/awstats.model.conf \
     %{buildroot}/%{_sysconfdir}/%{name}/%{name}.model.conf
 perl -pi -e '
-                s|^LogFile=.*$|LogFile="%{_localstatedir}/log/httpd/access_log"|;
+                s|^LogFile=.*$|LogFile="%{httpd_logdir}/access_log"|;
                 s|^DirData=.*$|DirData="%{_localstatedir}/lib/awstats"|;
                 s|^DirCgi=.*$|DirCgi="/awstats"|;
                 s|^DirIcons=.*$|DirIcons="/awstatsicons"|;
@@ -97,7 +108,7 @@ perl -pi -e 's|/usr/local/awstats|%{_datadir}/awstats|g' \
              %{buildroot}%{_datadir}/%{name}/tools/{*.pl}
 
 # Apache configuration
-install -p -m 644 tools/httpd_conf %{buildroot}/%{_sysconfdir}/httpd/conf.d/%{name}.conf
+install -p -m 644 tools/httpd_conf %{buildroot}/%{httpd_confdir}/%{name}.conf
 
 # replace logos with Copyright and Trademark problem by unknown.png
 # https://bugzilla.redhat.com/show_bug.cgi?id=1196549
@@ -119,12 +130,12 @@ if [ $1 -eq 1 ]; then
 fi
 
 %postun
-%systemd_postun_with_restart httpd.service
+%systemd_postun_with_restart %{httpd_service}.service
 
 
 %files
 # Apache configuration file
-%config(noreplace) %{_sysconfdir}/httpd/conf.d/%{name}.conf
+%config(noreplace) %{httpd_confdir}/%{name}.conf
 %config(noreplace) %{_sysconfdir}/%{name}/
 %{_localstatedir}/lib/%{name}
 %dir %{_datadir}/%{name}
